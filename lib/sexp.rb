@@ -8,7 +8,7 @@ $TESTING ||= false # unless defined $TESTING
 
 class Sexp < Array # ZenTest FULL
 
-  attr_writer :line
+  attr_writer :line, :endline
   attr_accessor :file, :comments
 
   @@array_types = [ :array, :args, ]
@@ -152,11 +152,14 @@ class Sexp < Array # ZenTest FULL
 
   def inspect # :nodoc:
     sexp_str = self.map {|x|x.inspect}.join(', ')
+    result_str = "s(#{sexp_str})"
     if ENV['VERBOSE'] && line then
-      "s(#{sexp_str}).line(#{line})"
-    else
-      "s(#{sexp_str})"
+      result_str = "#{result_str}.line(#{line})"
     end
+    if ENV['VERBOSE'] && endline then
+      result_str = "#{result_str}.endline(#{endline})"
+    end
+    result_str
   end
 
   def find_node name, delete = false
@@ -196,6 +199,20 @@ class Sexp < Array # ZenTest FULL
   end
 
   ##
+  # If passed a line number, sets the endline and returns self. Otherwise
+  # returns the endline number. This allows you to do message cascades
+  # and still get the sexp back.
+
+  def endline(n=nil)
+    if n then
+      @endline = n
+      self
+    else
+      @endline ||= nil
+    end
+  end
+
+  ##
   # Returns the size of the sexp, flattened.
 
   def mass
@@ -217,6 +234,7 @@ class Sexp < Array # ZenTest FULL
   def pretty_print(q) # :nodoc:
     nnd = ')'
     nnd << ".line(#{line})" if line && ENV['VERBOSE']
+    nnd << ".endline(#{endline})" if endline && ENV['VERBOSE']
 
     q.group(1, 's(', nnd) do
       q.seplist(self) {|v| q.pp v }

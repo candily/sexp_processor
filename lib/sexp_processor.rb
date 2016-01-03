@@ -488,10 +488,10 @@ class MethodBasedSexpProcessor < SexpProcessor
   ##
   # Adds name to the method stack, for the duration of the block
 
-  def in_method(name, file, line)
+  def in_method(name, file, line, endline)
     method_name = Regexp === name ? name.inspect : name.to_s
     @method_stack.unshift method_name
-    @method_locations[signature] = "#{file}:#{line}"
+    @method_locations[signature] = "#{file}:#{line}:#{endline}"
     yield
   ensure
     @method_stack.shift
@@ -562,7 +562,7 @@ class MethodBasedSexpProcessor < SexpProcessor
   def process_defn(exp)
     exp.shift unless auto_shift_type # node type
     name = @sclass.empty? ? exp.shift : "::#{exp.shift}"
-    in_method name, exp.file, exp.line do
+    in_method name, exp.file, exp.line, exp.endline do
       if block_given? then
         yield
       else
@@ -580,7 +580,7 @@ class MethodBasedSexpProcessor < SexpProcessor
   def process_defs(exp)
     exp.shift unless auto_shift_type # node type
     process exp.shift # recv
-    in_method "::#{exp.shift}", exp.file, exp.line do
+    in_method "::#{exp.shift}", exp.file, exp.line, exp.endline do
       if block_given? then
         yield
       else
