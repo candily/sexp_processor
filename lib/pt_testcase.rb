@@ -76,7 +76,7 @@ class ParseTreeTestCase < Minitest::Test
   end
 
   def self.add_19tests name, hash
-    add_tests "#{name}__19_20_21_22", hash # HACK?
+    add_tests "#{name}__19_20_21_22_23", hash # HACK?
   end
 
   def self.add_19edgecases ruby, sexp, cases
@@ -101,7 +101,7 @@ class ParseTreeTestCase < Minitest::Test
     testcases[verbose][klass] = testcases[nonverbose][klass]
   end
 
-  VER_RE = "(1[89]|2[012])"
+  VER_RE = "(1[89]|2[0123])"
 
   def self.generate_test klass, node, data, input_name, output_name
     klass.send :define_method, "test_#{node}" do
@@ -110,6 +110,8 @@ class ParseTreeTestCase < Minitest::Test
       tversions = node[/(?:_#{VER_RE})+$/]
       if tversions then
         cversion = self.class.name[/#{VER_RE}/]
+
+        assert true # shut up prove_it!
 
         # can't push this up because it may be generating into an
         # abstract test class and the actual subclass is versioned.
