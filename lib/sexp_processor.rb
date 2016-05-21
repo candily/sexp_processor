@@ -488,7 +488,7 @@ class MethodBasedSexpProcessor < SexpProcessor
   ##
   # Adds name to the method stack, for the duration of the block
 
-  def in_method(name, file, line, endline)
+  def in_method(name, file, line, endline=line)
     method_name = Regexp === name ? name.inspect : name.to_s
     @method_stack.unshift method_name
     @method_locations[signature] = "#{file}:#{line}:#{endline}"
