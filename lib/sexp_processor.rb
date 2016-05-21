@@ -654,6 +654,138 @@ class MethodBasedSexpProcessor < SexpProcessor
   end
 end
 
+class ClassBasedSexpProcessor < MethodBasedSexpProcessor
+  attr_reader :class_locations
+
+  def initialize
+    super
+    @class_locations = {}
+  end
+
+  ##
+  # Adds name to the class stack, for the duration of the block
+
+  def in_klass name, exp=nil
+    if Sexp === name then
+      name = case name.first
+             when :colon2 then
+               name = name.flatten
+               name.delete :const
+               name.delete :colon2
+               name.join("::")
+             when :colon3 then
+               name.last.to_s
+             else
+               raise "unknown type #{name.inspect}"
+             end
+    end
+
+    @class_stack.unshift name
+    @class_locations[signature(exp)] = exp.file unless exp.nil?
+
+    with_new_method_stack do
+      yield
+    end
+  ensure
+    @class_stack.shift
+  end
+  
+  ##
+  # Adds name to the method stack, for the duration of the block
+  
+  def in_method(exp, name, file, line, endline=line)
+    method_name = Regexp === name ? name.inspect : name.to_s
+    @method_stack.unshift method_name
+    @method_locations[signature(exp)] = "#{file}:#{line}:#{endline}"
+    yield
+  ensure
+    @method_stack.shift
+  end
+
+  ##
+  # Returns the method signature for the current method.
+
+  def signature(exp)
+    class_name = klass_name
+
+    if class_name == @@no_class then
+      exp.file
+    else
+      "#{class_name}#{method_name}"
+    end
+  end
+
+  ##
+  # Process a method node until empty. Tracks your location. If you
+  # have to subclass and override this method, you can clall super
+  # with a block.
+
+  def process_defn(exp)
+    exp.shift unless auto_shift_type # node type
+    name = @sclass.empty? ? exp.shift : "::#{exp.shift}"
+    in_method exp, name, exp.file, exp.line, exp.endline do
+      if block_given? then
+        yield
+      else
+        process_until_empty exp
+      end
+    end
+    s()
+  end
+
+  ##
+  # Process a singleton method node until empty. Tracks your location.
+  # If you have to subclass and override this method, you can clall
+  # super with a block.
+
+  def process_defs(exp)
+    exp.shift unless auto_shift_type # node type
+    process exp.shift # recv
+    in_method exp, "::#{exp.shift}", exp.file, exp.line, exp.endline do
+      if block_given? then
+        yield
+      else
+        process_until_empty exp
+      end
+    end
+    s()
+  end
+
+  ##
+  # Process a class node until empty. Tracks all nesting. If you have
+  # to subclass and override this method, you can clall super with a
+  # block.
+
+  def process_class(exp)
+    exp.shift unless auto_shift_type # node type
+    in_klass exp.shift, exp do
+      if block_given? then
+        yield
+      else
+        process_until_empty exp
+      end
+    end
+    s()
+  end
+
+  ##
+  # Process a module node until empty. Tracks all nesting. If you have
+  # to subclass and override this method, you can clall super with a
+  # block.
+
+  def process_module(exp)
+    exp.shift unless auto_shift_type # node type
+    in_klass exp.shift, exp do
+      if block_given? then
+        yield
+      else
+        process_until_empty exp
+      end
+    end
+    s()
+  end
+end
+
 class Object
 
   ##
