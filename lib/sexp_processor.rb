@@ -656,10 +656,12 @@ end
 
 class ClassBasedSexpProcessor < MethodBasedSexpProcessor
   attr_reader :class_locations
+  attr_reader :method_and_class_body_exps
 
   def initialize
     super
     @class_locations = {}
+    @method_and_class_body_exps = {}
   end
 
   ##
@@ -681,7 +683,9 @@ class ClassBasedSexpProcessor < MethodBasedSexpProcessor
     end
 
     @class_stack.unshift name
-    @class_locations[signature(exp)] = exp.file unless exp.nil?
+    sig = signature(exp)
+    @class_locations[sig] = exp.file unless exp.nil?
+    @method_and_class_body_exps[sig] = exp.deep_clone
 
     with_new_method_stack do
       yield
@@ -696,7 +700,9 @@ class ClassBasedSexpProcessor < MethodBasedSexpProcessor
   def in_method(exp, name, file, line, endline=line)
     method_name = Regexp === name ? name.inspect : name.to_s
     @method_stack.unshift method_name
-    @method_locations[signature(exp)] = "#{file}:#{line}:#{endline}"
+    sig = signature(exp)
+    @method_locations[sig] = "#{file}:#{line}:#{endline}"
+    @method_and_class_body_exps[sig] = exp.deep_clone
     yield
   ensure
     @method_stack.shift
