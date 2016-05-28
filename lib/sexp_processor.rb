@@ -683,9 +683,8 @@ class ClassBasedSexpProcessor < MethodBasedSexpProcessor
     end
 
     @class_stack.unshift name
-    sig = signature(exp)
-    @class_locations[sig] = exp.file unless exp.nil?
-    @method_and_class_body_exps[sig] = exp.deep_clone
+    @class_locations[signature] = exp.file unless exp.nil?
+    @method_and_class_body_exps[signature] = exp.deep_clone
 
     with_new_method_stack do
       yield
@@ -700,26 +699,13 @@ class ClassBasedSexpProcessor < MethodBasedSexpProcessor
   def in_method(exp, name, file, line, endline=line)
     method_name = Regexp === name ? name.inspect : name.to_s
     @method_stack.unshift method_name
-    sig = signature(exp)
-    @method_locations[sig] = "#{file}:#{line}:#{endline}"
-    @method_and_class_body_exps[sig] = exp.deep_clone
+    @method_locations[signature] = "#{file}:#{line}:#{endline}"
+    @method_and_class_body_exps[signature] = exp.deep_clone
     yield
   ensure
     @method_stack.shift
   end
 
-  ##
-  # Returns the method signature for the current method.
-
-  def signature(exp)
-    class_name = klass_name
-
-    if class_name == @@no_class then
-      exp.file
-    else
-      "#{class_name}#{method_name}"
-    end
-  end
 
   ##
   # Process a method node until empty. Tracks your location. If you
